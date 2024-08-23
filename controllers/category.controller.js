@@ -3,6 +3,7 @@ const upload = require("../config/upload.config.js");
 const Category = db.categories;
 const Product = db.products;
 const Ingredient = db.ingredients;
+const { readData, writeData } = require("../middlewares/redis.js");
 
 exports.create = (req, res) => {
   upload(req, res, (err) => {
@@ -31,37 +32,61 @@ exports.create = (req, res) => {
   });
 };
 
+
 exports.findAll = async (req, res) => {
   try {
+    // Generate a cache key based on the request path
+    const cacheKey = "/categories/findAll";
+
+    // Check if data is already cached
+    const cachedData = await readData(cacheKey);
+
+    if (cachedData) {
+      console.log("Data retrieved from cache");
+      return res.send(JSON.parse(cachedData));
+    }
+
+    console.log("Cache miss. Fetching data from the database...");
+
     // Number of products to fetch per category
     const productsLimit = 3;
 
     // Fetch all categories
     const categories = await Category.find();
+
     // Fetch products for each category
     for (let category of categories) {
       category.products = await Product.find({
         product_id: { $in: category.products },
       })
-        .limit(productsLimit) // Limit number of products
+        .limit(productsLimit)
         .exec();
+
       for (let product of category.products) {
         product.ingredients = await Ingredient.find({
           ingredient_id: { $in: product.ingredients },
         })
-          .limit(2) // Limit number of products
+          .limit(2)
           .exec();
       }
     }
 
-    res.send({ success: true, categories });
+    const responseData = { success: true, categories };
+
+    // Cache the data
+    await writeData(cacheKey, JSON.stringify(responseData));
+    console.log("Data fetched from the database and cached");
+
+    res.send(responseData);
   } catch (err) {
+    console.error("Error occurred while retrieving categories:", err);
     res.status(500).send({
       success: false,
       message: err.message || "Error occurred while retrieving categories.",
     });
   }
 };
+
 
 exports.findById = async (req, res) => {
   const categoryId = req.params.category_id;

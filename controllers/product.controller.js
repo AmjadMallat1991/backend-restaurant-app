@@ -4,6 +4,7 @@ const { Address } = require("./address.controller.js");
 const Product = db.products;
 const Category = db.categories;
 const Ingredient = db.ingredients;
+const { readData, writeData } = require("../middlewares/redis.js");
 
 exports.create = (req, res) => {
   upload(req, res, (err) => {
@@ -128,6 +129,19 @@ exports.findByCategory = async (req, res) => {
     const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
     const limit = parseInt(req.query.limit) || 10; // Default to 10 items per page if not specified
 
+    // Generate a cache key based on the category ID, page, and limit
+    const cacheKey = `/categories/${categoryId}/page=${page}&limit=${limit}`;
+
+    // Check if data is already cached
+    const cachedData = await readData(cacheKey);
+
+    if (cachedData) {
+      console.log("Data retrieved from cache");
+      return res.send(JSON.parse(cachedData));
+    }
+
+    console.log("Cache miss. Fetching data from the database...");
+
     // Calculate the number of documents to skip
     const skip = (page - 1) * limit;
 
@@ -141,24 +155,32 @@ exports.findByCategory = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalProducts / limit);
-    // Fetch ingredients for the product
+    // Fetch ingredients for each product
     for (let product of products) {
       product.ingredients = await Ingredient.find({
         ingredient_id: { $in: product.ingredients },
       });
     }
 
-    res.send({
+    // Calculate total pages
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    const responseData = {
       success: true,
       page,
       limit,
       totalPages,
       totalProducts,
       products,
-    });
+    };
+
+    // Cache the data
+    await writeData(cacheKey, JSON.stringify(responseData));
+    console.log("Data fetched from the database and cached");
+
+    res.send(responseData);
   } catch (err) {
+    console.error("Error occurred while retrieving products by category:", err);
     res.status(500).send({
       success: false,
       message:
