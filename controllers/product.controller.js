@@ -87,6 +87,7 @@ exports.findAll = async (req, res) => {
     });
   }
 };
+
 exports.findById = async (req, res) => {
   const productId = req.params.product_id;
 

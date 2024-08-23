@@ -269,9 +269,12 @@ exports.placeOrder = async (req, res) => {
 
     await order.save();
 
-    // Clear the user's cart after placing the order
-    cart.items = [];
-    await cart.save();
+    // // Clear the user's cart after placing the order
+    // cart.items = [];
+    // await cart.save();
+
+    // Remove the user's cart after placing the order
+    await Cart.deleteOne({ user_id: userId });
 
     res.status(201).send({
       success: true,
@@ -300,7 +303,9 @@ exports.getOrders = async (req, res) => {
     if (!orders || orders.length === 0) {
       return res
         .status(404)
-        .send({ message: "No orders found for this user with the specified status." });
+        .send({
+          message: "No orders found for this user with the specified status.",
+        });
     }
 
     res.status(200).send({
@@ -311,4 +316,3 @@ exports.getOrders = async (req, res) => {
     res.status(500).send({ message: err.message });
   }
 };
-

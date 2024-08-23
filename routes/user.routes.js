@@ -1,8 +1,8 @@
 module.exports = (app) => {
   const users = require("../controllers/user.controller.js");
   const router = require("express").Router();
-  const verifyToken = require("../middleware/authJwt.js");
-  const verifyApiToken = require("../middleware/verifyApiToken.js");
+  const verifyToken = require("../middlewares/authJwt.js");
+  const verifyApiToken = require("../middlewares/verifyApiToken.js");
 
   router.post("/signup", verifyApiToken, users.create);
   router.post("/signin", verifyApiToken, users.signin);

@@ -1,8 +1,12 @@
 const express = require("express");
+require("dotenv").config();
 const cors = require("cors");
 const path = require("path");
 const app = express();
 const db = require("../backend/models/index.js");
+const { initializeRedisClient } = require("./middlewares/redis.js");
+
+initializeRedisClient();
 db.mongoose
   .connect(db.url, {})
   .then(() => {
@@ -18,6 +22,7 @@ var corsOptions = {
     "http://localhost:8081",
     "http://127.0.0.1:5500",
     "http://localhost:3000/",
+    "http://localhost:62328/",
   ],
 };
 app.use(cors(corsOptions));

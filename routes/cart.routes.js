@@ -1,7 +1,7 @@
 module.exports = (app) => {
   const cart = require("../controllers/cart.controller.js");
   const router = require("express").Router();
-  const verifyToken = require("../middleware/authJwt.js");
+  const verifyToken = require("../middlewares/authJwt.js");
 
   // Routes for managing cart
   router.post("/cart/add_cart", verifyToken, cart.addToCart);
